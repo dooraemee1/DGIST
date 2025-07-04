@@ -13,7 +13,7 @@ def load_full_dataframe(excel_path):
 class PreprocessTransform:
     """
     RF 데이터 전처리를 위한 클래스.
-    과적합 방지를 위한 데이터 증강 기능을 포함합니다.
+    augment=True일 때만 데이터 증강을 수행합니다.
     """
     def __init__(self, num_select, sigma=1, downsample_rate=10, max_len=400, seed_offset=0,
                  augment=False, noise_level=0.01, max_shift=10):
@@ -56,10 +56,9 @@ class PreprocessTransform:
 class FolderDataset(Dataset):
     """
     효율성을 개선한 데이터셋 클래스.
-    파일 경로는 생성 시점에 미리 모두 찾아 저장합니다.
     """
     def __init__(self, dataframe, folder_path, indices, transform_h=None, transform_s=None, max_depth=4000, mode="train"):
-        self.database = dataframe.iloc[indices].reset_index()  # 원본 인덱스를 'index' 컬럼으로 유지
+        self.database = dataframe.iloc[indices].reset_index()
         self.transform_h = transform_h
         self.transform_s = transform_s
         self.max_depth = max_depth
@@ -82,8 +81,12 @@ class FolderDataset(Dataset):
         row = self.database.iloc[idx]
         h_file, s_file = row['h_path'], row['s_path']
 
-        h_data = np.loadtxt(h_file, delimiter=',')[:self.max_depth, :]
-        s_data = np.loadtxt(s_file, delimiter=',')[:self.max_depth, :]
+        # 손상된 CSV 파일을 robust하게 처리
+        h_df = pd.read_csv(h_file, header=None, low_memory=False)
+        h_data = h_df.apply(pd.to_numeric, errors='coerce').fillna(0).to_numpy()[:self.max_depth, :]
+
+        s_df = pd.read_csv(s_file, header=None, low_memory=False)
+        s_data = s_df.apply(pd.to_numeric, errors='coerce').fillna(0).to_numpy()[:self.max_depth, :]
 
         original_index = row['index']
 
