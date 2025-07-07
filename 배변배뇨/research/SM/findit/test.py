@@ -93,5 +93,6 @@ if __name__ == '__main__':
     dummy_s = [torch.randn(bs, 1, 400) for _ in range(3)]
 
     vol, _, _ = model(dummy_h, dummy_s)
-    print("Output shapes:")
+    print("
+Output shapes:")
     print(f"Volume: {vol.shape}")
